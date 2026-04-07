@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test</title>
+    <style>
+        .cursor {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: red;
+            border-radius: 50%;
+            pointer-events: none;
+            /* 讓滑鼠點擊不會被這個 div 擋住 */
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Test</h1>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const otherCursors = {}; // 用來儲存其他人的游標元素
+
+        // 1. 當滑鼠移動時，把座標送到伺服器
+        window.addEventListener('mousemove', (e) => {
+            socket.emit('cursor-move', {
+                x: e.clientX,
+                y: e.clientY
+            });
+        });
+
+        // 2. 接收伺服器傳來的「其他人座標」
+        socket.on('cursor-update', (data) => {
+            // 如果這個人是第一次出現，幫他畫一個圓點
+            if (!otherCursors[data.id]) {
+                const div = document.createElement('div');
+                div.className = 'cursor';
+                div.style.backgroundColor = data.color; // 使用伺服器分配的顏色
+                document.body.appendChild(div);
+                otherCursors[data.id] = div;
+            }
+
+            // 更新那個人的圓點位置
+            const el = otherCursors[data.id];
+            el.style.left = data.x + 'px';
+            el.style.top = data.y + 'px';
+        });
+
+        // 3. 當有人離開時，移除圓點
+        socket.on('user-left', (id) => {
+            if (otherCursors[id]) {
+                otherCursors[id].remove();
+                delete otherCursors[id];
+            }
+        });
+
+    </script>
+</body>
+
+</html>
