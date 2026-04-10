@@ -4,11 +4,12 @@ const { Server } = require("socket.io");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
+io.engine.on("connection_error", (err) => { console.error("Socket.io connection error:", err); });
 
 app.use(express.static("public"));
 
-app.get('/', (req, res) => { res.status(200).send('OK'); });
+app.get('/', (req, res) => { console.log('Health check request received'); res.status(200).send('OK'); });
 
 const adjectives = [
   "Sleepy",
@@ -98,6 +99,8 @@ io.on("connection", (socket) => {
     console.log("User left:", socket.id);
   });
 });
+
+app.use((err, req, res, next) => { console.error('Express error:', err); res.status(500).send('Internal Server Error'); });
 
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, '0.0.0.0', () => {
