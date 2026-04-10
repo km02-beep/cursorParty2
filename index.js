@@ -60,6 +60,10 @@ function generateName() {
   return `${adj} ${noun}`;
 }
 
+app.get("/", (req, res) => {
+  res.status(200).send("OK");
+});
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
@@ -85,4 +89,12 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled rejection at:", promise, "reason:", reason);
 });
