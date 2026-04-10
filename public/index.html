@@ -2,31 +2,66 @@
 <html>
   <head>
     <title>Cursor Party</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&display=swap"
+      rel="stylesheet" />
     <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: #fff;
+      }
+
+      #hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        gap: 16px;
+        pointer-events: none;
+      }
+
+      h1 {
+        font-size: 48px;
+        font-weight: 300;
+        letter-spacing: 6px;
+        text-transform: uppercase;
+        opacity: 0.5;
+        color: #000;
+      }
+
+      #instructions {
+        font-size: 14px;
+        font-weight: 400;
+        letter-spacing: 1px;
+        opacity: 0.5;
+        color: #000;
+      }
+
       .cursor {
         position: absolute;
         width: 15px;
         height: 15px;
-        background: blue;
         border-radius: 50%;
         pointer-events: none;
-      }
-
-      #instructions {
-        position: fixed;
-        top: 20px;
-        left: 20px;
-        font-family: sans-serif;
-        font-size: 16px;
-        background: rgba(255, 255, 255, 0.8);
-        padding: 8px 12px;
-        border-radius: 8px;
+        top: 0;
+        left: 0;
       }
     </style>
   </head>
   <body>
-    <h1>Cursor Party</h1>
-    <p id="instructions">Click anywhere to enable sound!</p>
+    <div id="hero">
+      <h1>Cursor Party</h1>
+      <p id="instructions">
+        Click anywhere to enable sound — then go bump into someone!
+      </p>
+    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
@@ -64,7 +99,7 @@
         osc.stop(audioCtx.currentTime + 0.1);
       }
 
-      // 3. Track mouse movement — throttled to ~60fps, scroll-aware
+      // 3. Track mouse movement
       window.addEventListener("mousemove", (e) => {
         const now = Date.now();
         if (now - lastEmit < 16) return;
@@ -95,7 +130,7 @@
         checkCollision();
       });
 
-      // 5. Collision detection — with 300ms cooldown so sound doesn't spam
+      // 5. Collision detection with 300ms cooldown
       function checkCollision() {
         const now = Date.now();
         if (now - lastHit < 300) return;
@@ -109,7 +144,7 @@
           if (distance < 20) {
             playHitSound();
             lastHit = now;
-            break; // one sound per collision check is enough
+            break;
           }
         }
       }
