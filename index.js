@@ -8,6 +8,8 @@ const io = new Server(server);
 
 app.use(express.static("public"));
 
+app.get('/', (req, res) => { res.status(200).send('OK'); });
+
 const adjectives = [
   "Sleepy",
   "Grumpy",
@@ -97,7 +99,10 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+process.on("uncaughtException", (err) => { console.error("Uncaught exception:", err); });
+process.on("unhandledRejection", (reason, promise) => { console.error("Unhandled rejection at:", promise, "reason:", reason); });
