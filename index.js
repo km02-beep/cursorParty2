@@ -3,7 +3,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const app = express();
-app.use('/image', express.static('image'));
+app.use(express.static('public'));
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
 io.engine.on("connection_error", (err) => { console.error("Socket.io connection error:", err); });
