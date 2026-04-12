@@ -62,6 +62,7 @@ const nouns = [
 const frequencies = [
   165, 185, 220, 247, 277, 330, 370, 415, 440, 494, 554, 587, 659, 740, 880,
 ];
+const backgroundTracks = ["bg1.mp3", "bg2.mp3", "bg3.mp3"];
 
 function generateName() {
   const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
@@ -75,12 +76,15 @@ io.on("connection", (socket) => {
   const userColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
   const userName = generateName();
   const userFreq = frequencies[Math.floor(Math.random() * frequencies.length)];
+  const userBackgroundTrack =
+    backgroundTracks[Math.floor(Math.random() * backgroundTracks.length)];
 
   // Send this user their own identity
   socket.emit("welcome", {
     color: userColor,
     name: userName,
     freq: userFreq,
+    backgroundTrack: userBackgroundTrack,
   });
 
   // Broadcast cursor movement to everyone else
