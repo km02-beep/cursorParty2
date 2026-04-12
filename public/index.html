@@ -121,8 +121,9 @@
 
   <script>
     const socket = io();
-    const collisionSound = new Audio('sound/hellobobo.mp3');
-    collisionSound.load();
+    // 1. 定義音效清單（請確保檔名與 sound 資料夾內一致）
+    const soundFiles = ['sound1.mp3', 'sound2.mp3', 'sound3.mp3'];
+    const soundList = soundFiles.map(file => new Audio(`sound/${file}`));
     const otherCursors = {};
     const myPosition = { x: 0, y: 0 };
 
@@ -150,23 +151,22 @@
 
     // ─── Audio helpers ───────────────────────────────────────────────
 
-    // 如果你不需要背景嗡嗡聲，這個 function 可以留空或刪除
     function modulateFreq(baseFreq, x, y) {
       return baseFreq;
     }
 
-    // 如果你不想要背景一直有聲音，可以讓這個 function 回傳 null
     function createOscillator(freq) {
       return null;
     }
 
-    // 初始化：點擊後啟用音效權限
     window.addEventListener("click", () => {
       if (audioReady) return;
+      // 激活 AudioContext 並預載所有音效
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       audioReady = true;
 
-      // 這裡我們不再啟動 oscillator，改為顯示成功訊息
+      soundList.forEach(s => s.load());
+
       const instructions = document.getElementById("instructions");
       if (instructions) instructions.innerText = "Sound enabled! Go bump into someone!";
     });
@@ -185,14 +185,18 @@
         { once: true },
       );
 
-      // 2. 播放 MP3 音效
-      if (audioReady) {
-        // 使用 cloneNode 確保快速連續碰撞時，聲音可以重疊播放不會被切斷
-        const soundInstance = collisionSound.cloneNode();
-        soundInstance.volume = 0.6; // 這裡可以調整音量大小 (0.0 到 1.0)
+      // 2. 隨機播放 MP3 音效
+      if (audioReady && soundList.length > 0) {
+        // 隨機從陣列中挑選一個音效
+        const randomIndex = Math.floor(Math.random() * soundList.length);
+        const selectedSound = soundList[randomIndex];
+
+        const soundInstance = selectedSound.cloneNode();
+        soundInstance.volume = 0.6;
         soundInstance.play().catch(e => console.error("音效播放失敗:", e));
       }
     }
+
 
     // ─── Build cursor DOM element ─────────────────────────────────────
     function createCursorElement(color, name) {
