@@ -121,7 +121,6 @@
 
   <script>
     const socket = io();
-    // 1. 定義音效清單（請確保檔名與 sound 資料夾內一致）
     const soundFiles = ['sound1.mp3', 'sound2.mp3', 'sound3.mp3'];
     const soundList = soundFiles.map(file => new Audio(`sound/${file}`));
     const otherCursors = {};
@@ -190,13 +189,11 @@
         // 隨機從陣列中挑選一個音效
         const randomIndex = Math.floor(Math.random() * soundList.length);
         const selectedSound = soundList[randomIndex];
-
         const soundInstance = selectedSound.cloneNode();
         soundInstance.volume = 0.6;
         soundInstance.play().catch(e => console.error("音效播放失敗:", e));
       }
     }
-
 
     // ─── Build cursor DOM element ─────────────────────────────────────
     function createCursorElement(color, name) {
