@@ -3,14 +3,21 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const app = express();
-app.use(express.static('public'));
+app.use(express.static("public"));
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*", methods: ["GET", "POST"] } });
-io.engine.on("connection_error", (err) => { console.error("Socket.io connection error:", err); });
+const io = new Server(server, {
+  cors: { origin: "*", methods: ["GET", "POST"] },
+});
+io.engine.on("connection_error", (err) => {
+  console.error("Socket.io connection error:", err);
+});
 
 app.use(express.static("public"));
 
-app.get('/', (req, res) => { console.log('Health check request received'); res.status(200).send('OK'); });
+app.get("/", (req, res) => {
+  console.log("Health check request received");
+  res.status(200).send("OK");
+});
 
 const adjectives = [
   "Sleepy",
@@ -73,7 +80,7 @@ function generateName() {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  const userColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
+  const userColor = `#ffffff`;
   const userName = generateName();
   const userFreq = frequencies[Math.floor(Math.random() * frequencies.length)];
   const userBackgroundTrack =
@@ -105,12 +112,19 @@ io.on("connection", (socket) => {
   });
 });
 
-app.use((err, req, res, next) => { console.error('Express error:', err); res.status(500).send('Internal Server Error'); });
+app.use((err, req, res, next) => {
+  console.error("Express error:", err);
+  res.status(500).send("Internal Server Error");
+});
 
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-process.on("uncaughtException", (err) => { console.error("Uncaught exception:", err); });
-process.on("unhandledRejection", (reason, promise) => { console.error("Unhandled rejection at:", promise, "reason:", reason); });
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught exception:", err);
+});
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled rejection at:", promise, "reason:", reason);
+});
