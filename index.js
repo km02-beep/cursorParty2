@@ -101,8 +101,9 @@ io.on("connection", (socket) => {
       x: data.x,
       y: data.y,
       color: userColor,
-      name: userName,
       freq: userFreq,
+      isTouching: data.isTouching || false,
+      isActive: data.isActive || false,
     });
   });
 

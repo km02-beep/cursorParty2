@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <title>Cursor Party</title>
+    <title>ESCAPE</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&display=swap"
       rel="stylesheet"
@@ -41,38 +41,13 @@
         color: #000;
       }
 
-      #instructions {
-        font-size: 14px;
-        font-weight: 400;
-        letter-spacing: 1px;
-        opacity: 0.5;
-        color: #000;
-      }
-
       .cursor-wrapper {
         position: absolute;
         pointer-events: none;
         top: 0;
         left: 0;
-        transform-origin: top left;
+        transform-origin: center;
         z-index: 2000;
-      }
-
-      .cursor-wrapper svg {
-        display: block;
-      }
-
-      .cursor-label {
-        margin-top: 2px;
-        margin-left: 4px;
-        font-size: 11px;
-        font-weight: 400;
-        letter-spacing: 0.3px;
-        white-space: nowrap;
-        padding: 2px 6px;
-        border-radius: 4px;
-        background: rgb(255, 255, 255, 1);
-        display: inline-block;
       }
 
       /* Collision wiggle animation */
@@ -111,23 +86,54 @@
       }
 
       #average-cursor {
-        width: 20px;
-        height: 20px;
+        width: 12px;
+        height: 12px;
         border-radius: 50%;
         position: absolute;
         background-color: fuchsia;
+        transform: translate(-50%, -50%);
+        z-index: 3000;
+      }
+
+      /* Cursor styles */
+      .cursor-circle {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: yellow;
+        transform: translate(-50%, -50%);
+        transition:
+          width 200ms ease-out,
+          height 200ms ease-out;
+      }
+
+      /* Active/inactive state classes */
+      .active-state .cursor-circle {
+        background-color: orange !important;
+      }
+
+      /* Touch cursor styles */
+      .touch-cursor {
+        z-index: 5 !important;
+        pointer-events: none;
+      }
+
+      .own-cursor.touch-active .cursor-circle {
+        width: 200px;
+        height: 200px;
+      }
+
+      /* Mobile-specific styles */
+      @media (hover: none) and (pointer: coarse) {
+        body {
+          cursor: none !important;
+        }
       }
     </style>
   </head>
 
   <body>
-    <!--
-  <div id="hero">
-    <h1>Cursor Party</h1>
-    <p id="instructions">
-      Click anywhere to enable sound — then go bump into someone!
-    </p>
-  </div> -->
+    <div id="hero"></div>
 
     <div id="average-cursor"></div>
 
@@ -147,16 +153,29 @@
       });
       const backgroundMusic = new Audio();
       const otherCursors = {};
-      const myPosition = { x: 0, y: 0 };
       const averagePos = { x: 0, y: 0 };
 
       // My own identity (received from server)
       let myColor = null;
-      let myName = null;
       let myBaseFreq = 220;
       let myBackgroundTrack = null;
       let myCursorEl = null;
+
       let averageCursorEl = document.getElementById("average-cursor");
+
+      let myCursorLocal = {
+        x: 0,
+        y: 0,
+        isTouching: false,
+        isActive: false,
+      };
+
+      let activeTouchId = null;
+
+      let lastUpdateTime = 0;
+      let animationFrameId = null;
+
+      let isMouseDown = false;
 
       // Audio
       let audioCtx = null;
@@ -174,7 +193,6 @@
       // ─── Receive own identity from server ───────────────────────────
       socket.on("welcome", (data) => {
         myColor = data.color;
-        myName = data.name;
         myBaseFreq = data.freq;
         myBackgroundTrack = data.backgroundTrack;
 
@@ -185,19 +203,35 @@
         }
 
         if (!myCursorEl) {
-          myCursorEl = createCursorElement(myColor, myName);
+          myCursorEl = createCursorElement(myColor, false);
+          myCursorEl.classList.add("own-cursor");
         }
 
-        updateMyCursorPosition();
+        updateMyCursorPosition(0, 0);
       });
+
+      // ─── Game Loop ──────────────────────────────────────────────────
+      function gameLoop(timestamp) {
+        const deltaTime = timestamp - lastUpdateTime;
+        lastUpdateTime = timestamp;
+
+        // Calculate average position
+        calculateAverage();
+
+        // Check for collisions
+        checkCollision();
+
+        // Continue the loop
+        animationFrameId = requestAnimationFrame(gameLoop);
+      }
+
+      // Start the game loop
+      lastUpdateTime = performance.now();
+      animationFrameId = requestAnimationFrame(gameLoop);
 
       // ─── Audio helpers ───────────────────────────────────────────────
       function modulateFreq(baseFreq, x, y) {
         return baseFreq;
-      }
-
-      function createOscillator(freq) {
-        return null;
       }
 
       window.addEventListener("click", () => {
@@ -255,48 +289,19 @@
       }
 
       // ─── Build cursor DOM element ─────────────────────────────────────
-      function createCursorElement(color, name) {
-        const wrapper = document.createElement("div");
-        wrapper.classList.add("cursor-wrapper");
+      function createCursorElement(color, isTouch) {
+        const cursor = document.createElement("div");
+        cursor.classList.add("cursor-wrapper");
+        if (isTouch) cursor.classList.add("touch-cursor");
 
-        const svg = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "svg",
-        );
-        svg.setAttribute("viewBox", "0 0 24 24");
-        svg.setAttribute("width", "24");
-        svg.setAttribute("height", "24");
+        // Create a simple yellow circle (20px diameter)
+        const circle = document.createElement("div");
+        circle.classList.add("cursor-circle");
 
-        const path = document.createElementNS(
-          "http://www.w3.org/2000/svg",
-          "path",
-        );
-        path.setAttribute(
-          "d",
-          "M4 2 L4 18 L8 14 L12 22 L14 21 L10 13 L16 13 Z",
-        );
-        path.setAttribute("fill", color);
-        path.setAttribute("stroke", "white");
-        path.setAttribute("stroke-width", "1.2");
-        path.setAttribute("stroke-linejoin", "round");
-        svg.appendChild(path);
+        cursor.appendChild(circle);
+        document.body.appendChild(cursor);
 
-        const label = document.createElement("span");
-        label.classList.add("cursor-label");
-        label.style.color = color;
-        label.innerText = name;
-
-        wrapper.appendChild(svg);
-        wrapper.appendChild(label);
-        document.body.appendChild(wrapper);
-
-        return wrapper;
-      }
-
-      function updateMyCursorPosition() {
-        if (!myCursorEl) return;
-        myCursorEl.style.left = myPosition.x + "px";
-        myCursorEl.style.top = myPosition.y + "px";
+        return cursor;
       }
 
       function isCollidingWithCursor(pointX, pointY, cursor) {
@@ -321,34 +326,141 @@
         );
       }
 
-      // ─── Mouse tracking ───────────────────────────────────────────────
-      window.addEventListener("mousemove", (e) => {
-        calculateAverage();
-
+      function emitMyCursorState() {
         const now = Date.now();
         if (now - lastEmit < 16) return;
         lastEmit = now;
 
-        myPosition.x = e.clientX + window.scrollX;
-        myPosition.y = e.clientY + window.scrollY;
-        updateMyCursorPosition();
+        socket.emit("cursor-move", {
+          x: myCursorLocal.x,
+          y: myCursorLocal.y,
+          isTouching: myCursorLocal.isTouching,
+          isActive: myCursorLocal.isActive,
+        });
+      }
 
-        socket.emit("cursor-move", { x: myPosition.x, y: myPosition.y });
+      function updateMyCursorPosition(x, y) {
+        myCursorLocal.x = x;
+        myCursorLocal.y = y;
+        emitMyCursorState();
+        myCursorEl.style.left = x + "px";
+        myCursorEl.style.top = y + "px";
 
         // Modulate my own sound with position
         if (audioCtx && myOsc) {
-          const modFreq = modulateFreq(myBaseFreq, myPosition.x, myPosition.y);
+          const modFreq = modulateFreq(
+            myBaseFreq,
+            myCursorLocal.x,
+            myCursorLocal.y,
+          );
           myOsc.frequency.setTargetAtTime(modFreq, audioCtx.currentTime, 0.08);
         }
+      }
 
-        checkCollision();
+      // ─── Mouse tracking ───────────────────────────────────────────────
+      window.addEventListener("mousedown", () => {
+        isMouseDown = true;
+        console.log("Mouse down - active state");
+        if (myCursorEl) {
+          myCursorEl.classList.add("active-state");
+        }
+        myCursorLocal.isActive = true;
+        emitMyCursorState();
+      });
+
+      window.addEventListener("mouseup", () => {
+        isMouseDown = false;
+        console.log("Mouse up - inactive state");
+        if (myCursorEl) {
+          myCursorEl.classList.remove("active-state");
+        }
+        myCursorLocal.isActive = false;
+        emitMyCursorState();
+      });
+
+      window.addEventListener("mousemove", (e) => {
+        updateMyCursorPosition(
+          e.clientX + window.scrollX,
+          e.clientY + window.scrollY,
+        );
+      });
+
+      // ─── Touch tracking for mobile devices ────────────────────────────
+      function handleTouchStart(e) {
+        console.log("Touch start detected, touches:", e.touches.length);
+        if (e.touches.length === 1 && !activeTouchId) {
+          const touch = e.touches[0];
+          activeTouchId = touch.identifier;
+          myCursorLocal.isTouching = true;
+
+          console.log("Starting touch with ID:", activeTouchId);
+
+          if (myCursorEl) {
+            myCursorEl.classList.add("touch-active");
+            myCursorEl.classList.add("active-state");
+          }
+
+          // Prevent default to avoid scrolling
+          e.preventDefault();
+
+          updateMyCursorPosition(
+            e.clientX + touch.clientX,
+            e.clientY + touch.clientY,
+          );
+        }
+      }
+
+      function handleTouchMove(e) {
+        if (!activeTouchId) return;
+
+        const touch = Array.from(e.touches).find(
+          (t) => t.identifier === activeTouchId,
+        );
+        if (touch) {
+          e.preventDefault(); // Prevent scrolling
+          updateMyCursorPosition(touch.clientX, touch.clientY);
+        }
+      }
+
+      function handleTouchEnd(e) {
+        if (activeTouchId) {
+          const touch = Array.from(e.changedTouches).find(
+            (t) => t.identifier === activeTouchId,
+          );
+          if (touch) {
+            myBackgroundTrack = false;
+            activeTouchId = null;
+            myCursorLocal.isTouching = false;
+
+            if (myCursorEl) {
+              myCursorEl.classList.remove("touch-active");
+              myCursorEl.classList.remove("active-state");
+            }
+            emitMyCursorState();
+          }
+        }
+      }
+
+      // Add touch event listeners with passive: false to allow preventDefault
+      window.addEventListener("touchstart", handleTouchStart, {
+        passive: false,
+      });
+      window.addEventListener("touchmove", handleTouchMove, { passive: false });
+      window.addEventListener("touchend", handleTouchEnd, { passive: false });
+      window.addEventListener("touchcancel", handleTouchEnd, {
+        passive: false,
       });
 
       // ─── Receive other cursors ────────────────────────────────────────
       socket.on("cursor-update", (data) => {
+        // console.log(
+        //   "Received cursor update with touch state:",
+        //   data.isTouching,
+        // );
+
         // First time seeing this user
         if (!otherCursors[data.id]) {
-          const el = createCursorElement(data.color, data.name);
+          const el = createCursorElement(data.color, data.isTouching);
           const entry = {
             el,
             x: 0,
@@ -356,14 +468,9 @@
             baseFreq: data.freq,
             osc: null,
             gain: null,
+            isTouching: false,
+            isActive: false,
           };
-
-          // Only create oscillator if audio is already running
-          // if (audioReady) {
-          //   const audio = createOscillator(data.freq);
-          //   entry.osc = audio.osc;
-          //   entry.gain = audio.gain;
-          // }
 
           otherCursors[data.id] = entry;
         }
@@ -371,34 +478,61 @@
         const c = otherCursors[data.id];
         c.x = data.x;
         c.y = data.y;
+        c.isTouching = data.isTouching || false;
+        c.isActive = data.isActive || false;
         c.el.style.left = c.x + "px";
         c.el.style.top = c.y + "px";
+
+        // Update cursor classes based on active state
+        const circle = c.el.querySelector(".cursor-circle");
+        if (circle) {
+          if (c.isActive || c.isTouching) {
+            c.el.classList.add("active-state");
+          } else {
+            c.el.classList.remove("active-state");
+          }
+        }
+
+        // Add visual indicator for touch state
+        if (c.isTouching) {
+          c.el.classList.add("touch-active");
+          c.el.style.display = "block";
+        } else {
+          c.el.classList.remove("touch-active");
+        }
 
         // Modulate their sound with their position
         if (audioCtx && c.osc) {
           const modFreq = modulateFreq(c.baseFreq, data.x, data.y);
           c.osc.frequency.setTargetAtTime(modFreq, audioCtx.currentTime, 0.08);
         }
-
-        checkCollision();
       });
 
       function calculateAverage() {
-        let xSum = myPosition.x;
-        let ySum = myPosition.y;
+        let xSum = myCursorLocal.x;
+        let ySum = myCursorLocal.y;
+        let activeCursorCount = 1; // Start with 1 for our own cursor
+
         const otherCursorsArray = Object.values(otherCursors);
-        console.log(otherCursorsArray);
         otherCursorsArray.forEach((cursor) => {
-          xSum += cursor.x;
-          ySum += cursor.y;
-          // console.log(cursor.x, cursor.y);
+          // Only include cursors that are actively touching (for touch devices)
+          // or always include non-touch cursors
+          if (
+            !cursor.el.classList.contains("touch-cursor") ||
+            cursor.isTouching
+          ) {
+            xSum += cursor.x;
+            ySum += cursor.y;
+            activeCursorCount++;
+          }
         });
 
-        averagePos.x = xSum / (otherCursorsArray.length + 1);
-        averagePos.y = ySum / (otherCursorsArray.length + 1);
-        // console.log(averagePos);
-        averageCursorEl.style.left = averagePos.x + "px";
-        averageCursorEl.style.top = averagePos.y + "px";
+        if (activeCursorCount > 0) {
+          averagePos.x = xSum / activeCursorCount;
+          averagePos.y = ySum / activeCursorCount;
+          averageCursorEl.style.left = averagePos.x + "px";
+          averageCursorEl.style.top = averagePos.y + "px";
+        }
       }
 
       // ─── Collision detection ──────────────────────────────────────────
@@ -410,7 +544,7 @@
           const lastHit = lastHitByCursor[id] || 0;
           if (now - lastHit < collisionCooldownMs) continue;
 
-          if (isCollidingWithCursor(myPosition.x, myPosition.y, other)) {
+          if (isCollidingWithCursor(myCursorLocal.x, myCursorLocal.y, other)) {
             lastHitByCursor[id] = now;
             triggerCollision({ el: myCursorEl });
             triggerCollision(other);
@@ -435,6 +569,13 @@
           otherCursors[id].el.remove();
           delete otherCursors[id];
           delete lastHitByCursor[id];
+        }
+      });
+
+      // Cleanup on page unload
+      window.addEventListener("beforeunload", () => {
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
         }
       });
     </script>
