@@ -1,463 +1,583 @@
 <!doctype html>
 <html>
-
-<head>
-  <title>Cursor Party</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&display=swap" rel="stylesheet" />
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      cursor: none !important;
-    }
-
-    html,
-    body {
-      font-family: "Inter", sans-serif;
-      background: #a1cd6b;
-      cursor: none;
-    }
-
-    #hero {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      gap: 16px;
-      pointer-events: none;
-    }
-
-    h1 {
-      font-size: 48px;
-      font-weight: 300;
-      letter-spacing: 6px;
-      text-transform: uppercase;
-      opacity: 0.5;
-      color: #000;
-    }
-
-    #instructions {
-      font-size: 14px;
-      font-weight: 400;
-      letter-spacing: 1px;
-      opacity: 0.5;
-      color: #000;
-    }
-
-    .cursor-wrapper {
-      position: absolute;
-      pointer-events: none;
-      top: 0;
-      left: 0;
-      transform-origin: top left;
-      z-index: 2000;
-    }
-
-    .cursor-wrapper svg {
-      display: block;
-    }
-
-    .cursor-label {
-      margin-top: 2px;
-      margin-left: 4px;
-      font-size: 11px;
-      font-weight: 400;
-      letter-spacing: 0.3px;
-      white-space: nowrap;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: rgb(255, 255, 255, 1);
-      display: inline-block;
-    }
-
-    /* Collision wiggle animation */
-    @keyframes wiggle {
-      0% {
-        transform: scale(1) rotate(0deg);
+  <head>
+    <title>ESCAPE</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        cursor: none !important;
       }
 
-      15% {
-        transform: scale(1.4) rotate(-6deg);
+      html,
+      body {
+        font-family: "Inter", sans-serif;
+        background: #000;
+        cursor: none;
+        overflow: hidden;
       }
 
-      30% {
-        transform: scale(0.9) rotate(6deg);
+      #hero {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        gap: 16px;
+        pointer-events: none;
       }
 
-      45% {
-        transform: scale(1.25) rotate(-4deg);
+      h1 {
+        font-size: 48px;
+        font-weight: 300;
+        letter-spacing: 6px;
+        text-transform: uppercase;
+        opacity: 0.5;
+        color: #000;
       }
 
-      60% {
-        transform: scale(0.95) rotate(3deg);
+      .cursor-wrapper {
+        position: absolute;
+        pointer-events: none;
+        top: 0;
+        left: 0;
+        transform-origin: center;
+        z-index: 2000;
       }
 
-      75% {
-        transform: scale(1.1) rotate(-2deg);
+      /* Collision wiggle animation */
+      @keyframes wiggle {
+        0% {
+          transform: scale(1) rotate(0deg);
+        }
+
+        15% {
+          transform: scale(1.4) rotate(-6deg);
+        }
+
+        30% {
+          transform: scale(0.9) rotate(6deg);
+        }
+
+        45% {
+          transform: scale(1.25) rotate(-4deg);
+        }
+
+        60% {
+          transform: scale(0.95) rotate(3deg);
+        }
+
+        75% {
+          transform: scale(1.1) rotate(-2deg);
+        }
+
+        100% {
+          transform: scale(1) rotate(0deg);
+        }
       }
 
-      100% {
-        transform: scale(1) rotate(0deg);
+      .wiggle {
+        animation: wiggle 0.45s ease forwards;
       }
-    }
 
-    .wiggle {
-      animation: wiggle 0.45s ease forwards;
-    }
-  </style>
-</head>
+      #average-cursor {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        position: absolute;
+        background-color: fuchsia;
+        transform: translate(-50%, -50%);
+        z-index: 3000;
+      }
 
-<body>
-  <!--
-  <div id="hero">
-    <h1>Cursor Party</h1>
-    <p id="instructions">
-      Click anywhere to enable sound — then go bump into someone!
-    </p>
-  </div> -->
+      /* Cursor styles */
+      .cursor-circle {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background-color: yellow;
+        transform: translate(-50%, -50%);
+        transition:
+          width 200ms ease-out,
+          height 200ms ease-out;
+      }
 
-  <img id="bouncingImage" src="./image/dvd.png"
-    style="position: absolute; width: 290px; z-index: 1000; opacity: 0.3;" />
+      /* Active/inactive state classes */
+      .active-state .cursor-circle {
+        background-color: orange !important;
+      }
 
-  <script src="/socket.io/socket.io.js"></script>
+      /* Touch cursor styles */
+      .touch-cursor {
+        z-index: 5 !important;
+        pointer-events: none;
+      }
 
-  <script>
-    const socket = io();
-    const soundFiles = ['sound1.mp3', 'sound2.mp3', 'sound3.mp3'];
-    const collisionPoolSize = 4;
-    const soundPools = soundFiles.map((file) => {
-      const src = `sound/${file}`;
-      return Array.from({ length: collisionPoolSize }, () => {
-        const audio = new Audio(src);
-        audio.preload = "auto";
-        return audio;
+      .own-cursor.touch-active .cursor-circle {
+        width: 200px;
+        height: 200px;
+      }
+
+      /* Mobile-specific styles */
+      @media (hover: none) and (pointer: coarse) {
+        body {
+          cursor: none !important;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="hero"></div>
+
+    <div id="average-cursor"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+
+    <script>
+      const socket = io();
+      const soundFiles = ["sound1.mp3", "sound2.mp3", "sound3.mp3"];
+      const collisionPoolSize = 4;
+      const soundPools = soundFiles.map((file) => {
+        const src = `sound/${file}`;
+        return Array.from({ length: collisionPoolSize }, () => {
+          const audio = new Audio(src);
+          audio.preload = "auto";
+          return audio;
+        });
       });
-    });
-    const backgroundMusic = new Audio();
-    const otherCursors = {};
-    const myPosition = { x: 0, y: 0 };
+      const backgroundMusic = new Audio();
+      const otherCursors = {};
+      const averagePos = { x: 0, y: 0 };
 
-    // My own identity (received from server)
-    let myColor = null;
-    let myName = null;
-    let myBaseFreq = 220;
-    let myBackgroundTrack = null;
-    let myCursorEl = null;
+      // My own identity (received from server)
+      let myColor = null;
+      let myBaseFreq = 220;
+      let myBackgroundTrack = null;
+      let myCursorEl = null;
 
-    // Audio
-    let audioCtx = null;
-    let myOsc = null;
-    let myGain = null;
-    let audioReady = false;
+      let averageCursorEl = document.getElementById("average-cursor");
 
-    // Throttle
-    let lastEmit = 0;
-    const collisionCooldownMs = 300;
-    const collisionHitboxSize = 18;
-    const collisionPadding = 10;
-    const lastHitByCursor = {};
+      let myCursorLocal = {
+        x: 0,
+        y: 0,
+        isTouching: false,
+        isActive: false,
+      };
 
-    // ─── Receive own identity from server ───────────────────────────
-    socket.on("welcome", (data) => {
-      myColor = data.color;
-      myName = data.name;
-      myBaseFreq = data.freq;
-      myBackgroundTrack = data.backgroundTrack;
+      let activeTouchId = null;
 
-      if (myBackgroundTrack) {
-        backgroundMusic.src = `sound/${myBackgroundTrack}`;
-        backgroundMusic.preload = "auto";
-        backgroundMusic.load();
-      }
+      let lastUpdateTime = 0;
+      let animationFrameId = null;
 
-      if (!myCursorEl) {
-        myCursorEl = createCursorElement(myColor, myName);
-      }
+      let isMouseDown = false;
 
-      updateMyCursorPosition();
-    });
+      // Audio
+      let audioCtx = null;
+      let myOsc = null;
+      let myGain = null;
+      let audioReady = false;
 
-    // ─── Audio helpers ───────────────────────────────────────────────
-    function modulateFreq(baseFreq, x, y) {
-      return baseFreq;
-    }
+      // Throttle
+      let lastEmit = 0;
+      const collisionCooldownMs = 300;
+      const collisionHitboxSize = 18;
+      const collisionPadding = 10;
+      const lastHitByCursor = {};
 
-    function createOscillator(freq) {
-      return null;
-    }
+      // ─── Receive own identity from server ───────────────────────────
+      socket.on("welcome", (data) => {
+        myColor = data.color;
+        myBaseFreq = data.freq;
+        myBackgroundTrack = data.backgroundTrack;
 
-    window.addEventListener("click", () => {
-      if (audioReady) return;
-      // 激活 AudioContext 並預載所有音效
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      audioReady = true;
+        if (myBackgroundTrack) {
+          backgroundMusic.src = `sound/${myBackgroundTrack}`;
+          backgroundMusic.preload = "auto";
+          backgroundMusic.load();
+        }
 
-      if (myBackgroundTrack) {
-        backgroundMusic.loop = true;
-        backgroundMusic.volume = 0.25;
-        backgroundMusic.play().catch(e => console.error("背景音樂播放失敗:", e));
-      }
-      soundPools.flat().forEach((sound) => {
-        sound.currentTime = 0;
-        sound.load();
+        if (!myCursorEl) {
+          myCursorEl = createCursorElement(myColor, false);
+          myCursorEl.classList.add("own-cursor");
+        }
+
+        updateMyCursorPosition(0, 0);
       });
 
-      const instructions = document.getElementById("instructions");
-      if (instructions) instructions.innerText = "Sound enabled! Go bump into someone!";
-    });
+      // ─── Game Loop ──────────────────────────────────────────────────
+      function gameLoop(timestamp) {
+        const deltaTime = timestamp - lastUpdateTime;
+        lastUpdateTime = timestamp;
 
-    // ─── Collision effect ─────────────────────────────────────────────
-    function triggerCollision(cursor) {
-      // 1. 視覺效果：保持原本的 Wiggle 動畫
-      if (!cursor?.el) return;
-      cursor.el.classList.remove("wiggle");
-      void cursor.el.offsetWidth;
-      cursor.el.classList.add("wiggle");
-      cursor.el.addEventListener(
-        "animationend",
-        () => {
-          cursor.el.classList.remove("wiggle");
-        },
-        { once: true },
-      );
+        // Calculate average position
+        calculateAverage();
 
-      // 2. 隨機播放 MP3 音效
-      if (audioReady && soundPools.length > 0) {
-        // 從預載好的 pool 中挑一個可立即播放的音效實例，降低碰撞延遲
-        const randomIndex = Math.floor(Math.random() * soundPools.length);
-        const selectedPool = soundPools[randomIndex];
-        const soundInstance =
-          selectedPool.find((sound) => sound.paused || sound.ended) || selectedPool[0];
+        // Check for collisions
+        checkCollision();
 
-        soundInstance.pause();
-        soundInstance.currentTime = 0;
-        soundInstance.volume = 0.6;
-        soundInstance.play().catch(e => console.error("音效播放失敗:", e));
-      }
-    }
-
-    // ─── Build cursor DOM element ─────────────────────────────────────
-    function createCursorElement(color, name) {
-      const wrapper = document.createElement("div");
-      wrapper.classList.add("cursor-wrapper");
-
-      const svg = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "svg",
-      );
-      svg.setAttribute("viewBox", "0 0 24 24");
-      svg.setAttribute("width", "24");
-      svg.setAttribute("height", "24");
-
-      const path = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "path",
-      );
-      path.setAttribute(
-        "d",
-        "M4 2 L4 18 L8 14 L12 22 L14 21 L10 13 L16 13 Z",
-      );
-      path.setAttribute("fill", color);
-      path.setAttribute("stroke", "white");
-      path.setAttribute("stroke-width", "1.2");
-      path.setAttribute("stroke-linejoin", "round");
-      svg.appendChild(path);
-
-      const label = document.createElement("span");
-      label.classList.add("cursor-label");
-      label.style.color = color;
-      label.innerText = name;
-
-      wrapper.appendChild(svg);
-      wrapper.appendChild(label);
-      document.body.appendChild(wrapper);
-
-      return wrapper;
-    }
-
-    function updateMyCursorPosition() {
-      if (!myCursorEl) return;
-      myCursorEl.style.left = myPosition.x + "px";
-      myCursorEl.style.top = myPosition.y + "px";
-    }
-
-    function isCollidingWithCursor(pointX, pointY, cursor) {
-      if (!cursor?.el) return false;
-
-      const left = cursor.x - collisionPadding;
-      const top = cursor.y - collisionPadding;
-      const right = cursor.x + cursor.el.offsetWidth + collisionPadding;
-      const bottom = cursor.y + cursor.el.offsetHeight + collisionPadding;
-
-      const halfHitbox = collisionHitboxSize / 2;
-      const pointLeft = pointX - halfHitbox;
-      const pointTop = pointY - halfHitbox;
-      const pointRight = pointX + halfHitbox;
-      const pointBottom = pointY + halfHitbox;
-
-      return (
-        pointLeft < right &&
-        pointRight > left &&
-        pointTop < bottom &&
-        pointBottom > top
-      );
-    }
-
-    // ─── Mouse tracking ───────────────────────────────────────────────
-    window.addEventListener("mousemove", (e) => {
-      const now = Date.now();
-      if (now - lastEmit < 16) return;
-      lastEmit = now;
-
-      myPosition.x = e.clientX + window.scrollX;
-      myPosition.y = e.clientY + window.scrollY;
-      updateMyCursorPosition();
-
-      socket.emit("cursor-move", { x: myPosition.x, y: myPosition.y });
-
-      // Modulate my own sound with position
-      if (audioCtx && myOsc) {
-        const modFreq = modulateFreq(myBaseFreq, myPosition.x, myPosition.y);
-        myOsc.frequency.setTargetAtTime(modFreq, audioCtx.currentTime, 0.08);
+        // Continue the loop
+        animationFrameId = requestAnimationFrame(gameLoop);
       }
 
-      checkCollision();
-    });
+      // Start the game loop
+      lastUpdateTime = performance.now();
+      animationFrameId = requestAnimationFrame(gameLoop);
 
-    // ─── Receive other cursors ────────────────────────────────────────
-    socket.on("cursor-update", (data) => {
-      // First time seeing this user
-      if (!otherCursors[data.id]) {
-        const el = createCursorElement(data.color, data.name);
-        const entry = {
-          el,
-          x: 0,
-          y: 0,
-          baseFreq: data.freq,
-          osc: null,
-          gain: null,
-        };
+      // ─── Audio helpers ───────────────────────────────────────────────
+      function modulateFreq(baseFreq, x, y) {
+        return baseFreq;
+      }
 
-        // Only create oscillator if audio is already running
-        if (audioReady) {
-          const audio = createOscillator(data.freq);
-          entry.osc = audio.osc;
-          entry.gain = audio.gain;
+      window.addEventListener("click", () => {
+        if (audioReady) return;
+        // 激活 AudioContext 並預載所有音效
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioReady = true;
+
+        if (myBackgroundTrack) {
+          backgroundMusic.loop = true;
+          backgroundMusic.volume = 0.25;
+          backgroundMusic
+            .play()
+            .catch((e) => console.error("背景音樂播放失敗:", e));
         }
+        soundPools.flat().forEach((sound) => {
+          sound.currentTime = 0;
+          sound.load();
+        });
 
-        otherCursors[data.id] = entry;
-      }
+        const instructions = document.getElementById("instructions");
+        if (instructions)
+          instructions.innerText = "Sound enabled! Go bump into someone!";
+      });
 
-      const c = otherCursors[data.id];
-      c.x = data.x;
-      c.y = data.y;
-      c.el.style.left = c.x + "px";
-      c.el.style.top = c.y + "px";
+      // ─── Collision effect ─────────────────────────────────────────────
+      function triggerCollision(cursor) {
+        // 1. 視覺效果：保持原本的 Wiggle 動畫
+        if (!cursor?.el) return;
+        cursor.el.classList.remove("wiggle");
+        void cursor.el.offsetWidth;
+        cursor.el.classList.add("wiggle");
+        cursor.el.addEventListener(
+          "animationend",
+          () => {
+            cursor.el.classList.remove("wiggle");
+          },
+          { once: true },
+        );
 
-      // Modulate their sound with their position
-      if (audioCtx && c.osc) {
-        const modFreq = modulateFreq(c.baseFreq, data.x, data.y);
-        c.osc.frequency.setTargetAtTime(modFreq, audioCtx.currentTime, 0.08);
-      }
+        // 2. 隨機播放 MP3 音效
+        if (audioReady && soundPools.length > 0) {
+          // 從預載好的 pool 中挑一個可立即播放的音效實例，降低碰撞延遲
+          const randomIndex = Math.floor(Math.random() * soundPools.length);
+          const selectedPool = soundPools[randomIndex];
+          const soundInstance =
+            selectedPool.find((sound) => sound.paused || sound.ended) ||
+            selectedPool[0];
 
-      checkCollision();
-    });
-
-    // ─── Collision detection ──────────────────────────────────────────
-    function checkCollision() {
-      const now = Date.now();
-
-      for (const id in otherCursors) {
-        const other = otherCursors[id];
-        const lastHit = lastHitByCursor[id] || 0;
-        if (now - lastHit < collisionCooldownMs) continue;
-
-        if (isCollidingWithCursor(myPosition.x, myPosition.y, other)) {
-          lastHitByCursor[id] = now;
-          triggerCollision({ el: myCursorEl });
-          triggerCollision(other);
+          soundInstance.pause();
+          soundInstance.currentTime = 0;
+          soundInstance.volume = 0.6;
+          soundInstance.play().catch((e) => console.error("音效播放失敗:", e));
         }
       }
-    }
 
-    // ─── User leaves ──────────────────────────────────────────────────
-    socket.on("user-left", (id) => {
-      if (otherCursors[id]) {
-        // Fade out their sound before removing
-        if (audioCtx && otherCursors[id].gain) {
-          const g = otherCursors[id].gain;
-          g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
-          // Stop oscillator after fade
-          setTimeout(() => {
-            try {
-              otherCursors[id].osc.stop();
-            } catch (e) { }
-          }, 500);
+      // ─── Build cursor DOM element ─────────────────────────────────────
+      function createCursorElement(color, isTouch) {
+        const cursor = document.createElement("div");
+        cursor.classList.add("cursor-wrapper");
+        if (isTouch) cursor.classList.add("touch-cursor");
+
+        // Create a simple yellow circle (20px diameter)
+        const circle = document.createElement("div");
+        circle.classList.add("cursor-circle");
+
+        cursor.appendChild(circle);
+        document.body.appendChild(cursor);
+
+        return cursor;
+      }
+
+      function isCollidingWithCursor(pointX, pointY, cursor) {
+        if (!cursor?.el) return false;
+
+        const left = cursor.x - collisionPadding;
+        const top = cursor.y - collisionPadding;
+        const right = cursor.x + cursor.el.offsetWidth + collisionPadding;
+        const bottom = cursor.y + cursor.el.offsetHeight + collisionPadding;
+
+        const halfHitbox = collisionHitboxSize / 2;
+        const pointLeft = pointX - halfHitbox;
+        const pointTop = pointY - halfHitbox;
+        const pointRight = pointX + halfHitbox;
+        const pointBottom = pointY + halfHitbox;
+
+        return (
+          pointLeft < right &&
+          pointRight > left &&
+          pointTop < bottom &&
+          pointBottom > top
+        );
+      }
+
+      function emitMyCursorState() {
+        const now = Date.now();
+        if (now - lastEmit < 16) return;
+        lastEmit = now;
+
+        socket.emit("cursor-move", {
+          x: myCursorLocal.x,
+          y: myCursorLocal.y,
+          isTouching: myCursorLocal.isTouching,
+          isActive: myCursorLocal.isActive,
+        });
+      }
+
+      function updateMyCursorPosition(x, y) {
+        myCursorLocal.x = x;
+        myCursorLocal.y = y;
+        emitMyCursorState();
+        myCursorEl.style.left = x + "px";
+        myCursorEl.style.top = y + "px";
+
+        // Modulate my own sound with position
+        if (audioCtx && myOsc) {
+          const modFreq = modulateFreq(
+            myBaseFreq,
+            myCursorLocal.x,
+            myCursorLocal.y,
+          );
+          myOsc.frequency.setTargetAtTime(modFreq, audioCtx.currentTime, 0.08);
         }
-        otherCursors[id].el.remove();
-        delete otherCursors[id];
-        delete lastHitByCursor[id];
-      }
-    });
-  </script>
-
-
-  <!-- dvd logo control -->
-  <script>
-    const img = document.getElementById('bouncingImage');
-    let posX = Math.random() * (window.innerWidth - 100); // 初始 X 位置
-    let posY = Math.random() * (window.innerHeight - 100); // 初始 Y 位置
-    let velX = 1; // X 軸移動速度
-    let velY = 1; // Y 軸移動速度
-
-    function move() {
-      const imgWidth = img.offsetWidth;
-      const imgHeight = img.offsetHeight;
-
-      // 更新座標
-      posX += velX;
-      posY += velY;
-
-      // 碰撞檢查：左右邊界
-      if (posX + imgWidth >= window.innerWidth || posX <= 0) {
-        velX = -velX; // 反轉方向
-      }
-      // 碰撞檢查：上下邊界
-      if (posY + imgHeight >= window.innerHeight || posY <= 0) {
-        velY = -velY; // 反轉方向
       }
 
-      // 套用新位置
-      img.style.left = posX + 'px';
-      img.style.top = posY + 'px';
+      // ─── Mouse tracking ───────────────────────────────────────────────
+      window.addEventListener("mousedown", () => {
+        isMouseDown = true;
+        console.log("Mouse down - active state");
+        if (myCursorEl) {
+          myCursorEl.classList.add("active-state");
+        }
+        myCursorLocal.isActive = true;
+        emitMyCursorState();
+      });
 
-      requestAnimationFrame(move); // 持續循環動畫
-    }
+      window.addEventListener("mouseup", () => {
+        isMouseDown = false;
+        console.log("Mouse up - inactive state");
+        if (myCursorEl) {
+          myCursorEl.classList.remove("active-state");
+        }
+        myCursorLocal.isActive = false;
+        emitMyCursorState();
+      });
 
-    // 確保圖片載入後開始移動
-    img.onload = () => move();
-    // 如果圖片已經快取，直接啟動
-    if (img.complete) move();
+      window.addEventListener("mousemove", (e) => {
+        updateMyCursorPosition(
+          e.clientX + window.scrollX,
+          e.clientY + window.scrollY,
+        );
+      });
 
-    window.addEventListener('resize', () => {
-      const imgWidth = img.offsetWidth;
-      const imgHeight = img.offsetHeight;
+      // ─── Touch tracking for mobile devices ────────────────────────────
+      function handleTouchStart(e) {
+        console.log("Touch start detected, touches:", e.touches.length);
+        if (e.touches.length === 1 && !activeTouchId) {
+          const touch = e.touches[0];
+          activeTouchId = touch.identifier;
+          myCursorLocal.isTouching = true;
 
-      // 如果圖片位置超過了縮小後的視窗寬度，就把它貼回邊界
-      if (posX + imgWidth > window.innerWidth) {
-        posX = window.innerWidth - imgWidth;
+          console.log("Starting touch with ID:", activeTouchId);
+
+          if (myCursorEl) {
+            myCursorEl.classList.add("touch-active");
+            myCursorEl.classList.add("active-state");
+          }
+
+          // Prevent default to avoid scrolling
+          e.preventDefault();
+
+          updateMyCursorPosition(
+            e.clientX + touch.clientX,
+            e.clientY + touch.clientY,
+          );
+        }
       }
-      // 如果圖片位置超過了縮小後的視窗高度，就把它貼回邊界
-      if (posY + imgHeight > window.innerHeight) {
-        posY = window.innerHeight - imgHeight;
+
+      function handleTouchMove(e) {
+        if (!activeTouchId) return;
+
+        const touch = Array.from(e.touches).find(
+          (t) => t.identifier === activeTouchId,
+        );
+        if (touch) {
+          e.preventDefault(); // Prevent scrolling
+          updateMyCursorPosition(touch.clientX, touch.clientY);
+        }
       }
-    });
-  </script>
 
+      function handleTouchEnd(e) {
+        if (activeTouchId) {
+          const touch = Array.from(e.changedTouches).find(
+            (t) => t.identifier === activeTouchId,
+          );
+          if (touch) {
+            myBackgroundTrack = false;
+            activeTouchId = null;
+            myCursorLocal.isTouching = false;
 
+            if (myCursorEl) {
+              myCursorEl.classList.remove("touch-active");
+              myCursorEl.classList.remove("active-state");
+            }
+            emitMyCursorState();
+          }
+        }
+      }
 
-</body>
+      // Add touch event listeners with passive: false to allow preventDefault
+      window.addEventListener("touchstart", handleTouchStart, {
+        passive: false,
+      });
+      window.addEventListener("touchmove", handleTouchMove, { passive: false });
+      window.addEventListener("touchend", handleTouchEnd, { passive: false });
+      window.addEventListener("touchcancel", handleTouchEnd, {
+        passive: false,
+      });
 
+      // ─── Receive other cursors ────────────────────────────────────────
+      socket.on("cursor-update", (data) => {
+        // console.log(
+        //   "Received cursor update with touch state:",
+        //   data.isTouching,
+        // );
+
+        // First time seeing this user
+        if (!otherCursors[data.id]) {
+          const el = createCursorElement(data.color, data.isTouching);
+          const entry = {
+            el,
+            x: 0,
+            y: 0,
+            baseFreq: data.freq,
+            osc: null,
+            gain: null,
+            isTouching: false,
+            isActive: false,
+          };
+
+          otherCursors[data.id] = entry;
+        }
+
+        const c = otherCursors[data.id];
+        c.x = data.x;
+        c.y = data.y;
+        c.isTouching = data.isTouching || false;
+        c.isActive = data.isActive || false;
+        c.el.style.left = c.x + "px";
+        c.el.style.top = c.y + "px";
+
+        // Update cursor classes based on active state
+        const circle = c.el.querySelector(".cursor-circle");
+        if (circle) {
+          if (c.isActive || c.isTouching) {
+            c.el.classList.add("active-state");
+          } else {
+            c.el.classList.remove("active-state");
+          }
+        }
+
+        // Add visual indicator for touch state
+        if (c.isTouching) {
+          c.el.classList.add("touch-active");
+          c.el.style.display = "block";
+        } else {
+          c.el.classList.remove("touch-active");
+        }
+
+        // Modulate their sound with their position
+        if (audioCtx && c.osc) {
+          const modFreq = modulateFreq(c.baseFreq, data.x, data.y);
+          c.osc.frequency.setTargetAtTime(modFreq, audioCtx.currentTime, 0.08);
+        }
+      });
+
+      function calculateAverage() {
+        let xSum = myCursorLocal.x;
+        let ySum = myCursorLocal.y;
+        let activeCursorCount = 1; // Start with 1 for our own cursor
+
+        const otherCursorsArray = Object.values(otherCursors);
+        otherCursorsArray.forEach((cursor) => {
+          // Only include cursors that are actively touching (for touch devices)
+          // or always include non-touch cursors
+          if (
+            !cursor.el.classList.contains("touch-cursor") ||
+            cursor.isTouching
+          ) {
+            xSum += cursor.x;
+            ySum += cursor.y;
+            activeCursorCount++;
+          }
+        });
+
+        if (activeCursorCount > 0) {
+          averagePos.x = xSum / activeCursorCount;
+          averagePos.y = ySum / activeCursorCount;
+          averageCursorEl.style.left = averagePos.x + "px";
+          averageCursorEl.style.top = averagePos.y + "px";
+        }
+      }
+
+      // ─── Collision detection ──────────────────────────────────────────
+      function checkCollision() {
+        const now = Date.now();
+
+        for (const id in otherCursors) {
+          const other = otherCursors[id];
+          const lastHit = lastHitByCursor[id] || 0;
+          if (now - lastHit < collisionCooldownMs) continue;
+
+          if (isCollidingWithCursor(myCursorLocal.x, myCursorLocal.y, other)) {
+            lastHitByCursor[id] = now;
+            triggerCollision({ el: myCursorEl });
+            triggerCollision(other);
+          }
+        }
+      }
+
+      // ─── User leaves ──────────────────────────────────────────────────
+      socket.on("user-left", (id) => {
+        if (otherCursors[id]) {
+          // Fade out their sound before removing
+          if (audioCtx && otherCursors[id].gain) {
+            const g = otherCursors[id].gain;
+            g.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+            // Stop oscillator after fade
+            setTimeout(() => {
+              try {
+                otherCursors[id].osc.stop();
+              } catch (e) {}
+            }, 500);
+          }
+          otherCursors[id].el.remove();
+          delete otherCursors[id];
+          delete lastHitByCursor[id];
+        }
+      });
+
+      // Cleanup on page unload
+      window.addEventListener("beforeunload", () => {
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+      });
+    </script>
+  </body>
 </html>
