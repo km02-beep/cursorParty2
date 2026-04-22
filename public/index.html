@@ -143,7 +143,7 @@
 
     <script>
       const socket = io();
-      const soundFiles = ["sound1.mp3", "sound2.mp3", "sound3.mp3"];
+      const soundFiles = ["sound1.wav", "sound2.wav", "sound3.wav"];
       const collisionPoolSize = 4;
       const soundPools = soundFiles.map((file) => {
         const src = `sound/${file}`;
@@ -237,7 +237,7 @@
         return baseFreq;
       }
 
-      window.addEventListener("click", () => {
+      function initializeAudio() {
         if (audioReady) return;
         // 激活 AudioContext 並預載所有音效
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -258,7 +258,14 @@
         const instructions = document.getElementById("instructions");
         if (instructions)
           instructions.innerText = "Sound enabled! Go bump into someone!";
-      });
+      }
+
+      // 支援電腦滑鼠點擊
+      window.addEventListener("click", initializeAudio);
+      
+      // 支援手機觸摸 (iOS 和 Android)
+      window.addEventListener("touchstart", initializeAudio, { passive: true });
+      window.addEventListener("touchmove", initializeAudio, { passive: true });
 
       // ─── Collision effect ─────────────────────────────────────────────
       function triggerCollision(cursor) {
