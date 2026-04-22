@@ -48,6 +48,7 @@
         left: 0;
         transform-origin: center;
         z-index: 2000;
+        /*transition: all 200ms ease-in-out;*/
       }
 
       /* Collision wiggle animation */
@@ -136,6 +137,7 @@
     <div id="hero"></div>
 
     <div id="average-cursor"></div>
+    <div id="trigger-point"></div>
 
     <script src="/socket.io/socket.io.js"></script>
 
@@ -207,7 +209,8 @@
           myCursorEl.classList.add("own-cursor");
         }
 
-        updateMyCursorPosition(0, 0);
+        // Initialize at center position (50%)
+        updateMyCursorPosition(window.innerWidth / 2, window.innerHeight / 2);
       });
 
       // ─── Game Loop ──────────────────────────────────────────────────
@@ -340,8 +343,14 @@
       }
 
       function updateMyCursorPosition(x, y) {
-        myCursorLocal.x = x;
-        myCursorLocal.y = y;
+        // Convert absolute positions to percentages
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const xPercent = (x / screenWidth) * 100;
+        const yPercent = (y / screenHeight) * 100;
+
+        myCursorLocal.x = xPercent;
+        myCursorLocal.y = yPercent;
         emitMyCursorState();
         myCursorEl.style.left = x + "px";
         myCursorEl.style.top = y + "px";
@@ -401,7 +410,7 @@
           }
 
           // Prevent default to avoid scrolling
-          e.preventDefault();
+          // e.preventDefault();
 
           updateMyCursorPosition(
             e.clientX + touch.clientX,
@@ -417,7 +426,7 @@
           (t) => t.identifier === activeTouchId,
         );
         if (touch) {
-          e.preventDefault(); // Prevent scrolling
+          // e.preventDefault(); // Prevent scrolling
           updateMyCursorPosition(touch.clientX, touch.clientY);
         }
       }
@@ -476,8 +485,11 @@
         }
 
         const c = otherCursors[data.id];
-        c.x = data.x;
-        c.y = data.y;
+        // Convert percentage positions back to absolute positions
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        c.x = (data.x / 100) * screenWidth;
+        c.y = (data.y / 100) * screenHeight;
         c.isTouching = data.isTouching || false;
         c.isActive = data.isActive || false;
         c.el.style.left = c.x + "px";
@@ -503,14 +515,20 @@
 
         // Modulate their sound with their position
         if (audioCtx && c.osc) {
-          const modFreq = modulateFreq(c.baseFreq, data.x, data.y);
+          const modFreq = modulateFreq(c.baseFreq, c.x, c.y);
           c.osc.frequency.setTargetAtTime(modFreq, audioCtx.currentTime, 0.08);
         }
       });
 
       function calculateAverage() {
-        let xSum = myCursorLocal.x;
-        let ySum = myCursorLocal.y;
+        // Convert our own percentage position to absolute for calculation
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const myX = (myCursorLocal.x / 100) * screenWidth;
+        const myY = (myCursorLocal.y / 100) * screenHeight;
+
+        let xSum = myX;
+        let ySum = myY;
         let activeCursorCount = 1; // Start with 1 for our own cursor
 
         const otherCursorsArray = Object.values(otherCursors);
@@ -539,12 +557,18 @@
       function checkCollision() {
         const now = Date.now();
 
+        // Convert our own percentage position to absolute for collision detection
+        const screenWidth = window.innerWidth;
+        const screenHeight = window.innerHeight;
+        const myX = (myCursorLocal.x / 100) * screenWidth;
+        const myY = (myCursorLocal.y / 100) * screenHeight;
+
         for (const id in otherCursors) {
           const other = otherCursors[id];
           const lastHit = lastHitByCursor[id] || 0;
           if (now - lastHit < collisionCooldownMs) continue;
 
-          if (isCollidingWithCursor(myCursorLocal.x, myCursorLocal.y, other)) {
+          if (isCollidingWithCursor(myX, myY, other)) {
             lastHitByCursor[id] = now;
             triggerCollision({ el: myCursorEl });
             triggerCollision(other);
